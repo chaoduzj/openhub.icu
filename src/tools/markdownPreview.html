@@ -16,11 +16,9 @@
   rel="stylesheet"
   href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css"
 />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<!-- 加载所有语言的完整包或添加额外语言 -->
+<script src="https://cdn.jsdelivr.net/npm/marked-highlight@2.2.4/lib/index.umd.js"></script>
 
 <!-- Storage Compression -->
 <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
@@ -495,8 +493,12 @@ body.fullscreen-mode #preview {
     padding: 20px 40px !important;
     border: none !important;
   }
+  #preview pre, #preview pre code {
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    word-wrap: break-word !important;
+  }
   #preview pre {
-    white-space: pre-wrap;
     border: 1px solid #ddd;
   }
 }
@@ -686,14 +688,18 @@ docker build -t markdown-preview .
         });
     };
 
+    const { markedHighlight } = window.markedHighlight;
+    marked.use(markedHighlight({
+        langPrefix: 'hljs language-',
+        highlight(code, lang) {
+            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            return hljs.highlight(code, { language }).value;
+        }
+    }));
+
     function render() {
       // Parse markdown
       preview.innerHTML = marked.parse(textarea.value);
-      
-      // Highlight code blocks
-      preview.querySelectorAll("pre code").forEach(block => {
-        hljs.highlightElement(block);
-      });
 
       // 异步加载本地存储的图片
       preview.querySelectorAll('img[src^="local://"]').forEach(async (img) => {
@@ -968,6 +974,13 @@ docker build -t markdown-preview .
                 clonedPreview.style.height = "auto";
                 clonedPreview.style.overflow = "visible";
                 clonedPreview.style.maxHeight = "none";
+                
+                // 解决长代码截断问题
+                clonedPreview.querySelectorAll("pre, code").forEach(el => {
+                    el.style.whiteSpace = "pre-wrap";
+                    el.style.wordBreak = "break-all";
+                    el.style.wordWrap = "break-word";
+                });
             }
         }).then(canvas => { 
             clearTimeout(timeoutId); // Clear timeout on success
@@ -1117,6 +1130,13 @@ docker build -t markdown-preview .
                 clonedPreview.style.height = "auto";
                 clonedPreview.style.overflow = "visible";
                 clonedPreview.style.maxHeight = "none";
+                
+                // 解决长代码截断问题
+                clonedPreview.querySelectorAll("pre, code").forEach(el => {
+                    el.style.whiteSpace = "pre-wrap";
+                    el.style.wordBreak = "break-all";
+                    el.style.wordWrap = "break-word";
+                });
             }
         }).then(canvas => { 
             clearTimeout(timeoutId);
@@ -1133,7 +1153,7 @@ docker build -t markdown-preview .
             });
             
             pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight); 
-            pdf.save("markdown_image.pdf"); 
+            pdf.save("openhub-icu-markdown.pdf"); 
             resetBtn(btn, originalText, originalIcon);
         }).catch(err => {
             clearTimeout(timeoutId);
@@ -1155,8 +1175,21 @@ docker build -t markdown-preview .
 
         setTimeout(() => {
             try {
-                // Get HTML content
-                const previewElement = document.getElementById("preview");
+                // Get HTML content and clone it
+                const previewElement = document.getElementById("preview").cloneNode(true);
+                
+                // 解决相邻代码块在 Word 中合并的问题：动态插入一个隐形的空段落
+                const pres = previewElement.querySelectorAll("pre");
+                pres.forEach(pre => {
+                    if (pre.nextElementSibling && pre.nextElementSibling.tagName.toLowerCase() === 'pre') {
+                        const spacer = document.createElement("p");
+                        spacer.innerHTML = "&nbsp;";
+                        spacer.style.margin = "0";
+                        spacer.style.fontSize = "6pt";
+                        spacer.style.lineHeight = "6pt";
+                        pre.parentNode.insertBefore(spacer, pre.nextSibling);
+                    }
+                });
                 
                 // Construct a complete HTML document for Word
                 const htmlContent = `
@@ -1168,7 +1201,7 @@ docker build -t markdown-preview .
                             body { font-family: 'Microsoft YaHei', sans-serif; line-height: 1.6; }
                             table { border-collapse: collapse; width: 100%; margin: 1em 0; }
                             td, th { border: 1px solid #000; padding: 6px 10px; }
-                            pre { background: #f5f5f5; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; }
+                            pre { background: #f5f5f5; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-break: break-all; word-wrap: break-word; }
                             blockquote { border-left: 4px solid #ccc; padding-left: 10px; color: #666; margin: 10px 0; }
                             img { max-width: 100%; height: auto; }
                             h1, h2, h3 { color: #111; }
