@@ -30,6 +30,8 @@
 <!-- Word Export -->
 <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
 
 <style>
 :root {
@@ -228,6 +230,15 @@ textarea {
   margin: 16px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: block; /* 防止内联底边距 */
+}
+
+/* Mermaid 图表容器 */
+#preview .mermaid {
+  overflow-x: auto;
+  text-align: center;
+  margin: 16px 0;
+  background: #fff;
+  border-radius: 6px;
 }
 
 /* ===== 列表排版（核心） ===== */
@@ -585,7 +596,7 @@ body.fullscreen-mode #preview {
 <textarea id="md">
 # Markdown Preview
 
-> 支持 **代码高亮**、图片、表格、引用等。
+> 支持 **代码高亮**、流程图 (Mermaid)、图片、表格、引用等。
 
 ## 示例代码
 
@@ -594,16 +605,25 @@ def hello(name: str):
     print(f"Hello {name}")
 
 hello("World")
-const sum = (a, b) => a + b;
-console.log(sum(1, 2));
-docker build -t markdown-preview .
 ```
 
-# 
+## 流程图示例
+
+```mermaid
+flowchart LR
+    A[Hard] -->|Text| B(Round)
+    B --> C{Decision}
+    C -->|One| D[Result 1]
+    C -->|Two| E[Result 2]
+```
+
+## 特性支持
+
 | Feature    | Support |
 | ---------- | ------- |
 | Markdown   | ✅       |
 | Highlight  | ✅       |
+| Mermaid    | ✅       |
 | Export PNG | ✅       |
 | Export PDF | ✅       |
 
@@ -689,18 +709,51 @@ docker build -t markdown-preview .
         });
     };
 
+    // 初始化 Mermaid
+    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+    // 拦截 Mermaid 代码块
+    marked.use({
+        extensions: [{
+            name: 'code',
+            level: 'block',
+            renderer(token) {
+                if (token.lang === 'mermaid') {
+                    return '<div class="mermaid">' + token.text + '</div>';
+                }
+                return false;
+            }
+        }]
+    });
+
     const { markedHighlight } = window.markedHighlight;
     marked.use(markedHighlight({
         langPrefix: 'hljs language-',
         highlight(code, lang) {
+            if (lang === 'mermaid') {
+                return code; // 不要对 mermaid 进行代码高亮处理
+            }
             const language = hljs.getLanguage(lang) ? lang : 'plaintext';
             return hljs.highlight(code, { language }).value;
         }
     }));
 
-    function render() {
+    async function render() {
       // Parse markdown
       preview.innerHTML = marked.parse(textarea.value);
+
+      // 渲染 Mermaid 流程图
+      try {
+          const mermaidElements = preview.querySelectorAll('.mermaid');
+          if (mermaidElements.length > 0) {
+              await mermaid.run({
+                  nodes: mermaidElements,
+                  suppressErrors: true
+              });
+          }
+      } catch (err) {
+          console.warn('Mermaid render warning:', err);
+      }
 
       // 异步加载本地存储的图片
       preview.querySelectorAll('img[src^="local://"]').forEach(async (img) => {
