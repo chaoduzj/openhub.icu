@@ -594,38 +594,90 @@ body.fullscreen-mode #preview {
 <main>
   <section id="editor">
 <textarea id="md">
-# Markdown Preview
+# OpenHub Markdown Preview
 
-> 支持 **代码高亮**、流程图 (Mermaid)、图片、表格、引用等。
+> 在浏览器中编写、预览和导出 Markdown。内容会自动保存在本机，无需注册。
 
-## 示例代码
+## 目录
+
+- [快速开始](#快速开始)
+- [富文本语法](#富文本语法)
+- [代码高亮](#代码高亮)
+- [Mermaid 图表](#mermaid-图表)
+- [表格与任务列表](#表格与任务列表)
+- [图片、分享与导出](#图片分享与导出)
+
+## 快速开始
+
+直接修改左侧内容，右侧会**实时更新**。你也可以点击顶部的「打开文件」，载入本地 `.md`、`.markdown` 或 `.txt` 文件。
+
+这份文档本身就是一个功能示例：试着点击上方目录，看看预览区的章节跳转。
+
+## 富文本语法
+
+Markdown 支持 **粗体**、*斜体*、~~删除线~~、`行内代码`，以及 [OpenHub](https://openhub.icu) 这样的链接。
+
+> 引用适合放置摘要、提示或需要特别说明的内容。
+
+1. 使用标题组织内容
+2. 使用列表拆分步骤
+3. 使用分隔线划分主题
+
+---
+
+## 代码高亮
+
+为代码块声明语言，即可获得对应的语法高亮：
 
 ```python
-def hello(name: str):
-    print(f"Hello {name}")
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
 
-hello("World")
+print(greet("OpenHub"))
 ```
 
-## 流程图示例
+配置文件同样支持高亮：
+
+```properties
+app.name=OpenHub
+preview.autosave=true
+export.formats=png,pdf,docx,html
+```
+
+## Mermaid 图表
+
+使用 `mermaid` 代码块，可以直接绘制流程图：
 
 ```mermaid
 flowchart LR
-    A[Hard] -->|Text| B(Round)
-    B --> C{Decision}
-    C -->|One| D[Result 1]
-    C -->|Two| E[Result 2]
+    A[编写 Markdown] --> B[实时预览]
+    B --> C{选择输出方式}
+    C -->|协作| D[生成分享链接]
+    C -->|归档| E[导出 PDF / Word]
+    C -->|展示| F[保存为图片]
 ```
 
-## 特性支持
+## 表格与任务列表
 
-| Feature    | Support |
-| ---------- | ------- |
-| Markdown   | ✅       |
-| Highlight  | ✅       |
-| Mermaid    | ✅       |
-| Export PNG | ✅       |
-| Export PDF | ✅       |
+| 能力 | 使用方式 | 状态 |
+| --- | --- | :---: |
+| 实时预览 | 编辑左侧 Markdown | ✅ |
+| 自动保存 | 内容保存在当前浏览器 | ✅ |
+| 目录跳转 | 点击文档内的目录链接 | ✅ |
+| 代码与图表 | 使用语言或 Mermaid 代码块 | ✅ |
+
+- [x] 编写内容并实时预览
+- [x] 使用目录快速浏览长文档
+- [ ] 把这份示例改成你的文档
+
+## 图片、分享与导出
+
+- **粘贴图片**：复制图片后，直接粘贴到左侧编辑器中。
+- **生成分享链接**：点击顶部「分享链接」，即可复制当前文档链接；本地粘贴的图片不会包含在链接中。
+- **多格式导出**：支持保存为 PNG 图片、PDF、Word 文档，也可以复制渲染后的 HTML。
+- **全屏阅读**：点击「全屏」专注查看预览，按 `Esc` 退出。
+
+现在，开始编辑这份文档吧！
 
 </textarea>
 </section>
