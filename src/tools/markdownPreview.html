@@ -738,9 +738,55 @@ flowchart LR
         }
     }));
 
+    function createHeadingSlug(text) {
+        return text
+            .trim()
+            .toLowerCase()
+            .replace(/[^\p{Letter}\p{Number}\p{Mark}\s_-]/gu, '')
+            .replace(/\s+/g, '-');
+    }
+
+    function addHeadingAnchors() {
+        const usedSlugs = new Map();
+
+        preview.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
+            const baseSlug = createHeadingSlug(heading.textContent) || 'section';
+            const duplicateCount = usedSlugs.get(baseSlug) || 0;
+            const slug = duplicateCount === 0 ? baseSlug : `${baseSlug}-${duplicateCount}`;
+
+            usedSlugs.set(baseSlug, duplicateCount + 1);
+            heading.id = slug;
+        });
+    }
+
+    preview.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href^="#"]');
+        if (!link || !preview.contains(link)) return;
+
+        const rawTarget = link.getAttribute('href').slice(1);
+        if (!rawTarget) return;
+
+        let targetId = rawTarget;
+        try {
+            targetId = decodeURIComponent(rawTarget);
+        } catch (error) {
+            console.warn('无法解析目录锚点:', rawTarget, error);
+        }
+
+        const target = document.getElementById(targetId);
+        if (!target || !preview.contains(target)) return;
+
+        event.preventDefault();
+        target.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'start'
+        });
+    });
+
     async function render() {
       // Parse markdown
       preview.innerHTML = marked.parse(textarea.value);
+      addHeadingAnchors();
 
       // 渲染 Mermaid 流程图
       try {
