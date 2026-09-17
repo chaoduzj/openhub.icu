@@ -266,6 +266,27 @@ textarea {
   margin: 4px 0;
 }
 
+#preview .markdown-toc {
+  margin: 16px 0 24px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+#preview .markdown-toc > ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+#preview .markdown-toc a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+#preview .markdown-toc a:hover {
+  text-decoration: underline;
+}
+
 /* ===== Code 样式修复 ===== */
 
 /* 行内代码 */
@@ -598,14 +619,7 @@ body.fullscreen-mode #preview {
 
 > 在浏览器中编写、预览和导出 Markdown。内容会自动保存在本机，无需注册。
 
-## 目录
-
-- [快速开始](#快速开始)
-- [富文本语法](#富文本语法)
-- [代码高亮](#代码高亮)
-- [Mermaid 图表](#mermaid-图表)
-- [表格与任务列表](#表格与任务列表)
-- [图片、分享与导出](#图片分享与导出)
+[TOC]
 
 ## 快速开始
 
@@ -764,6 +778,29 @@ flowchart LR
     // 初始化 Mermaid
     mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
+    // 支持使用独立一行的 [TOC] 自动生成目录
+    marked.use({
+        extensions: [{
+            name: 'toc',
+            level: 'block',
+            start(src) {
+                return src.search(/^ {0,3}\[toc\][ \t]*(?:\n|$)/im);
+            },
+            tokenizer(src) {
+                const match = /^ {0,3}\[toc\][ \t]*(?:\n|$)/i.exec(src);
+                if (match) {
+                    return {
+                        type: 'toc',
+                        raw: match[0]
+                    };
+                }
+            },
+            renderer() {
+                return '<nav class="markdown-toc" aria-label="文档目录"></nav>';
+            }
+        }]
+    });
+
     // 拦截 Mermaid 代码块
     marked.use({
         extensions: [{
@@ -811,6 +848,56 @@ flowchart LR
         });
     }
 
+    function createTocList(nodes) {
+        const list = document.createElement('ul');
+
+        nodes.forEach((node) => {
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+
+            link.href = `#${encodeURIComponent(node.heading.id)}`;
+            link.textContent = node.heading.textContent;
+            item.appendChild(link);
+
+            if (node.children.length > 0) {
+                item.appendChild(createTocList(node.children));
+            }
+
+            list.appendChild(item);
+        });
+
+        return list;
+    }
+
+    function renderTableOfContents() {
+        const tocContainers = preview.querySelectorAll('.markdown-toc');
+        if (tocContainers.length === 0) return;
+
+        const root = { level: 0, children: [] };
+        const stack = [root];
+
+        preview.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
+            const level = Number(heading.tagName.slice(1));
+            const node = { heading, level, children: [] };
+
+            while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+                stack.pop();
+            }
+
+            stack[stack.length - 1].children.push(node);
+            stack.push(node);
+        });
+
+        tocContainers.forEach((container) => {
+            if (root.children.length === 0) {
+                container.remove();
+                return;
+            }
+
+            container.appendChild(createTocList(root.children));
+        });
+    }
+
     preview.addEventListener('click', (event) => {
         const link = event.target.closest('a[href^="#"]');
         if (!link || !preview.contains(link)) return;
@@ -839,6 +926,7 @@ flowchart LR
       // Parse markdown
       preview.innerHTML = marked.parse(textarea.value);
       addHeadingAnchors();
+      renderTableOfContents();
 
       // 渲染 Mermaid 流程图
       try {
